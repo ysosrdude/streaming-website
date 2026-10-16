@@ -66,6 +66,14 @@ function categoriesCompatible(a: string, b: string): boolean {
   return groupB.some((id) => groupA.has(id))
 }
 
+/** Whether a feed match category matches the sport chip id (cross-feed aliases). */
+export function matchSportCategory(
+  matchCategory: string,
+  sportId: string,
+): boolean {
+  return categoriesCompatible(matchCategory, sportId)
+}
+
 function datesCompatible(a: number, b: number): boolean {
   if (a === 0 || b === 0) return true
   return Math.abs(a - b) <= DATE_TOLERANCE_MS

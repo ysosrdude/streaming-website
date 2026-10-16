@@ -25,6 +25,8 @@ import {
   SEARCH_MIN_LENGTH,
 } from '../utils/matchSearch'
 import { discoverCatalogMatches } from '../providers/discovery'
+import { matchSportCategory } from '../utils/eventMatch'
+import { timeSelectorLabel } from '../utils/timeSelectorLabel'
 
 const VALID_VIEWS = new Set<string>(['live', 'all-today', 'all'])
 
@@ -111,7 +113,7 @@ export function BrowsePage() {
 
     let pool = discoveryQuery.data ?? matches
     if (sportId) {
-      pool = pool.filter((match) => match.category === sportId)
+      pool = pool.filter((match) => matchSportCategory(match.category, sportId))
     }
     return filterCatalogMatches(pool, trimmed, categoryLabels)
   }, [
@@ -129,13 +131,10 @@ export function BrowsePage() {
     soleProvider !== undefined &&
     providerUsesSportSelector(soleProvider)
 
+  const timeLabel = timeSelectorLabel(timeSelector)
   const sectionTitle = sportId
-    ? (categoryLabels.get(sportId) ?? formatCategoryLabel(sportId))
-    : timeSelector === 'live'
-      ? 'Live now'
-      : timeSelector === 'all-today'
-        ? 'Today'
-        : 'All events'
+    ? `${categoryLabels.get(sportId) ?? formatCategoryLabel(sportId)} · ${timeLabel}`
+    : timeLabel
 
   const scheduleTitle = searchActive
     ? `Results for “${searchQuery.trim()}”`
@@ -203,14 +202,13 @@ export function BrowsePage() {
           <ErrorState error={sportsQuery.error} onRetry={sportsQuery.refetch} />
         ) : (
           <div className="filter-stack">
+            <TimeFilter active={timeSelector} sportId={sportId} />
             {sportOnlyStreamCenter ? (
               <p className="browse-note" role="note">
-                Full schedule for this sport on StreamCenter. Choose{' '}
-                <strong>All sports</strong> for Live, Today, or All.
+                StreamCenter lists this sport in full; Live / Today / All filter
+                that list on your side.
               </p>
-            ) : (
-              <TimeFilter active={timeSelector} sportId={sportId} />
-            )}
+            ) : null}
             {sportId && !sportOnlyStreamCenter ? (
               <p className="browse-note" role="note">
                 Filtered by sport across feeds.

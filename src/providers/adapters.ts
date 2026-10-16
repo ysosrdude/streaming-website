@@ -1,9 +1,10 @@
 import { createStreamCenterApi } from '../api/streamcenter'
 import { createTrendy48Api, type Trendy48Match } from '../api/trendy48'
-import type { BuiltinMatchSelector, Match, MatchSelector } from '../types/api'
+import type { BuiltinMatchSelector, Match } from '../types/api'
 import type { CatalogMatch, CatalogSport } from '../types/catalog'
 import type { FeedProvider } from '../feeds'
 import { formatCategoryLabel } from '../utils/category'
+import { matchSportCategory } from '../utils/eventMatch'
 
 export interface BrowseQuery {
   timeSelector: BuiltinMatchSelector
@@ -58,14 +59,7 @@ function filterBySport<T extends { category: string }>(
   sportId: string | null,
 ): T[] {
   if (!sportId) return rows
-  return rows.filter((row) => row.category === sportId)
-}
-
-function resolveStreamCenterSelector(
-  query: BrowseQuery,
-): MatchSelector {
-  if (query.sportId) return query.sportId
-  return query.timeSelector
+  return rows.filter((row) => matchSportCategory(row.category, sportId))
 }
 
 export async function fetchSportsForProvider(
@@ -100,9 +94,9 @@ export async function fetchMatchesForProvider(
 ): Promise<CatalogMatch[]> {
   if (provider.kind === 'streamcenter') {
     const api = createStreamCenterApi(provider.baseUrl)
-    const selector = resolveStreamCenterSelector(query)
-    const matches = await api.listMatches(selector, signal)
-    return matches.map((m) => toStreamCenterCatalog(provider, m))
+    const matches = await api.listMatches(query.timeSelector, signal)
+    const rows = matches.map((m) => toStreamCenterCatalog(provider, m))
+    return filterBySport(rows, query.sportId)
   }
 
   const api = createTrendy48Api(provider.baseUrl)
@@ -119,9 +113,9 @@ export async function fetchPopularForProvider(
 ): Promise<CatalogMatch[]> {
   if (provider.kind === 'streamcenter') {
     const api = createStreamCenterApi(provider.baseUrl)
-    const selector = resolveStreamCenterSelector(query)
-    const matches = await api.listPopularMatches(selector, signal)
-    return matches.map((m) => toStreamCenterCatalog(provider, m))
+    const matches = await api.listPopularMatches(query.timeSelector, signal)
+    const rows = matches.map((m) => toStreamCenterCatalog(provider, m))
+    return filterBySport(rows, query.sportId)
   }
 
   const api = createTrendy48Api(provider.baseUrl)

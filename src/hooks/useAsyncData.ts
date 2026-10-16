@@ -23,6 +23,7 @@ export function useAsyncData<T>(
   const [isFetching, setIsFetching] = useState(false)
   const [tick, setTick] = useState(0)
   const dataRef = useRef(data)
+  const keyRef = useRef(key)
   dataRef.current = data
 
   useEffect(() => {
@@ -33,11 +34,18 @@ export function useAsyncData<T>(
     }
 
     const controller = new AbortController()
+    const keyChanged = keyRef.current !== key
+    keyRef.current = key
     setIsFetching(true)
     setError(undefined)
-    setStatus((current) =>
-      dataRef.current === undefined ? 'loading' : current,
-    )
+    if (keyChanged) {
+      setData(undefined)
+      setStatus('loading')
+    } else {
+      setStatus((current) =>
+        dataRef.current === undefined ? 'loading' : current,
+      )
+    }
 
     loader(controller.signal)
       .then((result) => {
