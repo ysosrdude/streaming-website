@@ -1,4 +1,6 @@
-import { Link, useLocation } from 'react-router-dom'
+import { motion } from 'motion/react'
+import { Link } from 'react-router-dom'
+import { springSnappy } from '../../motion/presets'
 import { BUILTIN_SELECTORS, homePath } from '../../routes/paths'
 import type { BuiltinMatchSelector } from '../../types/api'
 
@@ -8,32 +10,34 @@ interface TimeFilterProps {
 }
 
 export function TimeFilter({ active, sportId }: TimeFilterProps) {
-  const location = useLocation()
-
   return (
     <nav className="filter-nav" aria-label="Time range">
-      <ul className="filter-nav__list">
+      <div className="segmented" role="tablist">
         {BUILTIN_SELECTORS.map((item) => {
           const to = homePath(item.id, sportId)
-          const isActive =
-            active === item.id &&
-            (sportId
-              ? location.pathname.startsWith('/sport/')
-              : location.pathname === '/')
+          const isActive = active === item.id
 
           return (
-            <li key={item.id}>
-              <Link
-                to={to}
-                className={`filter-pill${isActive ? ' filter-pill--active' : ''}`}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                {item.label}
-              </Link>
-            </li>
+            <Link
+              key={item.id}
+              to={to}
+              className={`segmented__item${isActive ? ' segmented__item--active' : ''}`}
+              role="tab"
+              aria-selected={isActive}
+            >
+              {isActive ? (
+                <motion.span
+                  layoutId="time-range-indicator"
+                  className="segmented__indicator"
+                  transition={springSnappy}
+                  aria-hidden
+                />
+              ) : null}
+              {item.label}
+            </Link>
           )
         })}
-      </ul>
+      </div>
     </nav>
   )
 }

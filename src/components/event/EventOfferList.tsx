@@ -1,4 +1,6 @@
+import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
+import { fadeUp, springSnappy, staggerContainer } from '../../motion/presets'
 import { buildWatchPath } from '../../routes/paths'
 import type { CatalogMatch } from '../../types/catalog'
 import { formatMatchDate } from '../../utils/date'
@@ -16,11 +18,21 @@ function canWatch(match: CatalogMatch): boolean {
 
 export function EventOfferList({ offers }: EventOfferListProps) {
   return (
-    <ul className="event-offers">
+    <motion.ul
+      className="event-offers"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+    >
       {offers.map((match) => {
         const watchable = canWatch(match)
         return (
-          <li key={match.key} className="event-offer">
+          <motion.li
+            key={match.key}
+            className="event-offer"
+            variants={fadeUp}
+            whileHover={{ x: 4, transition: springSnappy }}
+          >
             <div className="event-offer__info">
               <span className="event-offer__feed">{match.providerName}</span>
               <h3 className="event-offer__title">{match.title}</h3>
@@ -41,9 +53,9 @@ export function EventOfferList({ offers }: EventOfferListProps) {
             ) : (
               <span className="event-offer__unavailable">No stream</span>
             )}
-          </li>
+          </motion.li>
         )
       })}
-    </ul>
+    </motion.ul>
   )
 }

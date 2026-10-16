@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api/errors'
 
 export type AsyncStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -7,6 +7,8 @@ export interface AsyncState<T> {
   status: AsyncStatus
   data: T | undefined
   error: Error | undefined
+  /** True while a request is in flight (including background refetches). */
+  isFetching: boolean
   refetch: () => void
 }
 
@@ -18,23 +20,31 @@ export function useAsyncData<T>(
   const [status, setStatus] = useState<AsyncStatus>('idle')
   const [data, setData] = useState<T | undefined>()
   const [error, setError] = useState<Error | undefined>()
+  const [isFetching, setIsFetching] = useState(false)
   const [tick, setTick] = useState(0)
+  const dataRef = useRef(data)
+  dataRef.current = data
 
   useEffect(() => {
     if (!enabled) {
       setStatus('idle')
+      setIsFetching(false)
       return
     }
 
     const controller = new AbortController()
-    setStatus('loading')
+    setIsFetching(true)
     setError(undefined)
+    setStatus((current) =>
+      dataRef.current === undefined ? 'loading' : current,
+    )
 
     loader(controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) {
           setData(result)
           setStatus('success')
+          setIsFetching(false)
         }
       })
       .catch((err: unknown) => {
@@ -43,9 +53,13 @@ export function useAsyncData<T>(
           err instanceof Error ? err : new Error('Something went wrong')
         setError(normalized)
         setStatus('error')
+        setIsFetching(false)
       })
 
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      setIsFetching(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by `key`; loader is stable per call site
   }, [key, enabled, tick])
 
@@ -53,6 +67,7 @@ export function useAsyncData<T>(
     status,
     data,
     error,
+    isFetching,
     refetch: () => setTick((n) => n + 1),
   }
 }

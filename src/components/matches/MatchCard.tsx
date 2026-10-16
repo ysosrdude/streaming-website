@@ -1,4 +1,6 @@
+import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
+import { springSnappy } from '../../motion/presets'
 import { buildEventPath } from '../../routes/paths'
 import type { CatalogMatch } from '../../types/catalog'
 import { posterImageUrl } from '../../utils/assets'
@@ -17,10 +19,29 @@ export function MatchCard({ match, sportName }: MatchCardProps) {
     (match.playback.kind === 'streamcenter' && match.sources.length > 0)
   const live = match.date === 0 || isLiveWindow(match.date)
   const eventTo = canWatch ? buildEventPath(match) : '#'
+  const ariaLabel = [
+    match.title,
+    sportName ?? match.category,
+    formatMatchDate(match.date),
+    live ? 'Live' : null,
+    match.providerName,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <article className="match-card">
-      <Link to={eventTo} state={{ match }} className="match-card__link">
+    <motion.article
+      className={`match-card${live ? ' match-card--live' : ''}`}
+      initial={false}
+      whileHover={{ y: -5, transition: springSnappy }}
+      whileTap={{ scale: 0.98, transition: springSnappy }}
+    >
+      <Link
+        to={eventTo}
+        state={{ match }}
+        className="match-card__link"
+        aria-label={canWatch ? `Watch ${ariaLabel}` : ariaLabel}
+      >
         <div className="match-card__media">
           {poster ? (
             <img src={poster} alt="" loading="lazy" decoding="async" />
@@ -50,7 +71,12 @@ export function MatchCard({ match, sportName }: MatchCardProps) {
             </div>
           )}
           <span className="match-card__feed">{match.providerName}</span>
-          {live ? <span className="match-card__live">Live</span> : null}
+          {live ? (
+            <span className="match-card__live">
+              <span className="match-card__live-dot" aria-hidden />
+              Live
+            </span>
+          ) : null}
           {match.popular ? (
             <span className="match-card__popular">Popular</span>
           ) : null}
@@ -68,6 +94,6 @@ export function MatchCard({ match, sportName }: MatchCardProps) {
           ) : null}
         </div>
       </Link>
-    </article>
+    </motion.article>
   )
 }

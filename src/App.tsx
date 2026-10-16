@@ -1,11 +1,14 @@
+import { MotionConfig } from 'motion/react'
 import { RouterProvider } from 'react-router-dom'
 import { ProviderSelectionProvider } from './context/ProviderSelectionContext'
 import { router } from './routes/router'
 
 export default function App() {
   return (
-    <ProviderSelectionProvider>
-      <RouterProvider router={router} />
-    </ProviderSelectionProvider>
+    <MotionConfig reducedMotion="user">
+      <ProviderSelectionProvider>
+        <RouterProvider router={router} />
+      </ProviderSelectionProvider>
+    </MotionConfig>
   )
 }

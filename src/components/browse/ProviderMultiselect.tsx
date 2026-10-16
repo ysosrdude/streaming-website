@@ -5,11 +5,15 @@ export function ProviderMultiselect() {
     useProviderSelection()
 
   return (
-    <div className="provider-select">
+    <fieldset className="provider-select">
       <div className="provider-select__header">
-        <span className="provider-select__label">Feeds</span>
+        <legend className="provider-select__label">Feeds</legend>
         {selectedIds.length < providers.length ? (
-          <button type="button" className="provider-select__action" onClick={selectAll}>
+          <button
+            type="button"
+            className="provider-select__action"
+            onClick={selectAll}
+          >
             Select all
           </button>
         ) : null}
@@ -31,6 +35,6 @@ export function ProviderMultiselect() {
           )
         })}
       </ul>
-    </div>
+    </fieldset>
   )
 }

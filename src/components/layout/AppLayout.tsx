@@ -1,17 +1,23 @@
-import { Outlet } from 'react-router-dom'
 import { FEED_PROVIDERS } from '../../feeds'
+import { AnimatedOutlet } from '../motion/AnimatedOutlet'
 import { Header } from './Header'
 
 export function AppLayout() {
   return (
     <div className="app-shell">
+      <div className="app-atmosphere" aria-hidden>
+        <span className="app-atmosphere__glow" />
+        <span className="app-atmosphere__grid" />
+        <span className="app-atmosphere__noise" />
+      </div>
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <Header />
-      <main className="app-main">
-        <Outlet />
+      <main id="main-content" className="app-main" tabIndex={-1}>
+        <AnimatedOutlet />
       </main>
       <footer className="site-footer">
         <p>
-          Data provided by{' '}
+          Data from{' '}
           {FEED_PROVIDERS.map((feed, index) => (
             <span key={feed.id}>
               {index > 0 ? ', ' : null}
@@ -24,7 +30,7 @@ export function AppLayout() {
               )}
             </span>
           ))}
-          . Streams are third-party embeds.
+          . Third-party streams.
         </p>
       </footer>
     </div>

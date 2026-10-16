@@ -11,7 +11,7 @@ export function MatchGrid({ matches, categoryLabels }: MatchGridProps) {
   return (
     <ul className="match-grid">
       {matches.map((match) => (
-        <li key={match.key}>
+        <li key={match.key} className="match-grid__item">
           <MatchCard
             match={match}
             sportName={

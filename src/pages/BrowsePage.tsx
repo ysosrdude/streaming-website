@@ -1,8 +1,9 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { ProviderMultiselect } from '../components/browse/ProviderMultiselect'
 import { ProviderWarnings } from '../components/browse/ProviderWarnings'
 import { SportFilter } from '../components/browse/SportFilter'
+import { MatchSearch } from '../components/browse/MatchSearch'
 import { TimeFilter } from '../components/browse/TimeFilter'
 import { MatchGrid } from '../components/matches/MatchGrid'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -19,6 +20,11 @@ import { getProviderById, providerUsesSportSelector } from '../feeds'
 import type { BrowseQuery } from '../providers/adapters'
 import type { BuiltinMatchSelector } from '../types/api'
 import { formatCategoryLabel } from '../utils/category'
+import {
+  filterCatalogMatches,
+  SEARCH_MIN_LENGTH,
+} from '../utils/matchSearch'
+import { discoverCatalogMatches } from '../providers/discovery'
 
 const VALID_VIEWS = new Set<string>(['live', 'all-today', 'all'])
 
@@ -33,6 +39,7 @@ export function BrowsePage() {
   const { sportId: sportIdParam } = useParams()
   const [searchParams] = useSearchParams()
   const { selectedIds } = useProviderSelection()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const timeSelector = resolveTimeSelector(searchParams.get('view'))
   const sportId = sportIdParam ?? null
@@ -86,6 +93,35 @@ export function BrowsePage() {
   const matches = matchesQuery.data?.matches ?? []
   const popular = popularQuery.data?.matches ?? []
 
+  const searchActive =
+    searchQuery.trim().length >= SEARCH_MIN_LENGTH && selectedIds.length > 0
+
+  const discoveryQuery = useAsyncData(
+    `discovery:${providerKey}`,
+    useCallback(
+      (signal) => discoverCatalogMatches(selectedIds, signal),
+      [selectedIds],
+    ),
+    searchActive,
+  )
+
+  const displayedMatches = useMemo(() => {
+    const trimmed = searchQuery.trim()
+    if (trimmed.length < SEARCH_MIN_LENGTH) return matches
+
+    let pool = discoveryQuery.data ?? matches
+    if (sportId) {
+      pool = pool.filter((match) => match.category === sportId)
+    }
+    return filterCatalogMatches(pool, trimmed, categoryLabels)
+  }, [
+    searchQuery,
+    matches,
+    discoveryQuery.data,
+    sportId,
+    categoryLabels,
+  ])
+
   const soleProvider =
     selectedIds.length === 1 ? getProviderById(selectedIds[0]) : undefined
   const sportOnlyStreamCenter =
@@ -101,88 +137,142 @@ export function BrowsePage() {
         ? 'Today'
         : 'All events'
 
-  const loading =
-    sportsQuery.status === 'loading' ||
-    matchesQuery.status === 'loading' ||
-    popularQuery.status === 'loading'
+  const scheduleTitle = searchActive
+    ? `Results for “${searchQuery.trim()}”`
+    : sectionTitle
+
+  const scheduleInitialLoad = searchActive
+    ? discoveryQuery.status === 'loading' && discoveryQuery.data === undefined
+    : matchesQuery.status === 'loading' && matchesQuery.data === undefined
+
+  const scheduleSettled = searchActive
+    ? discoveryQuery.status === 'success' || discoveryQuery.status === 'error'
+    : matchesQuery.status === 'success' || matchesQuery.status === 'error'
 
   return (
     <div className="browse-page">
-      <section className="browse-hero">
-        <h1>Watch live sports</h1>
-        <p>
-          Choose one or more feeds, browse events, and open a stream in the
-          player.
-        </p>
+      <header className="browse-hero">
+        <div className="browse-hero__ticker" aria-hidden>
+          <span className="browse-hero__ticker-track">
+            On air · multi-feed · open event · choose provider · on air ·
+            multi-feed ·
+          </span>
+        </div>
+        <div className="browse-hero__layout">
+          <div className="browse-hero__copy">
+            <p className="browse-hero__eyebrow">Transmission desk</p>
+            <h1 className="browse-hero__title">
+              What&apos;s
+              <span className="browse-hero__title-accent"> on now</span>
+            </h1>
+            <p className="browse-hero__subtitle">
+              Scan live boards from your feeds, jump into an event, and lock in
+              where you watch.
+            </p>
+          </div>
+          <div className="browse-hero__badge" aria-hidden>
+            <span className="browse-hero__badge-label">Guide</span>
+            <span className="browse-hero__badge-value">24/7</span>
+          </div>
+        </div>
+      </header>
+
+      <section className="panel panel--filters" aria-label="Filters">
+        <MatchSearch
+          value={searchQuery}
+          onChange={setSearchQuery}
+          resultCount={
+            searchActive && discoveryQuery.status === 'success'
+              ? displayedMatches.length
+              : undefined
+          }
+          searching={searchActive && discoveryQuery.isFetching}
+        />
+
+        <ProviderMultiselect />
+
+        <ProviderWarnings
+          failures={[
+            ...(sportsQuery.data?.failures ?? []),
+            ...(matchesQuery.data?.failures ?? []),
+            ...(popularQuery.data?.failures ?? []),
+          ]}
+        />
+
+        {sportsQuery.status === 'error' && sportsQuery.error ? (
+          <ErrorState error={sportsQuery.error} onRetry={sportsQuery.refetch} />
+        ) : (
+          <div className="filter-stack">
+            {sportOnlyStreamCenter ? (
+              <p className="browse-note" role="note">
+                Full schedule for this sport on StreamCenter. Choose{' '}
+                <strong>All sports</strong> for Live, Today, or All.
+              </p>
+            ) : (
+              <TimeFilter active={timeSelector} sportId={sportId} />
+            )}
+            {sportId && !sportOnlyStreamCenter ? (
+              <p className="browse-note" role="note">
+                Filtered by sport across feeds.
+              </p>
+            ) : null}
+            <SportFilter
+              sports={sportsQuery.data?.sports ?? []}
+              activeSportId={sportId}
+              timeSelector={timeSelector}
+            />
+          </div>
+        )}
       </section>
 
-      <ProviderMultiselect />
-
-      <ProviderWarnings
-        failures={[
-          ...(sportsQuery.data?.failures ?? []),
-          ...(matchesQuery.data?.failures ?? []),
-          ...(popularQuery.data?.failures ?? []),
-        ]}
-      />
-
-      {sportsQuery.status === 'loading' ? (
-        <LoadingState label="Loading sports…" />
-      ) : sportsQuery.status === 'error' && sportsQuery.error ? (
-        <ErrorState error={sportsQuery.error} onRetry={sportsQuery.refetch} />
-      ) : (
-        <>
-          {sportOnlyStreamCenter ? (
-            <p className="browse-note">
-              StreamCenter shows the full schedule for this sport. Use{' '}
-              <strong>All sports</strong> for Live / Today / All, or add Trendy48
-              to combine feeds.
-            </p>
-          ) : sportId ? (
-            <p className="browse-note">
-              Filtering by category across selected feeds. Use{' '}
-              <strong>All sports</strong> for global Live / Today / All lists.
-            </p>
-          ) : (
-            <TimeFilter active={timeSelector} sportId={sportId} />
-          )}
-          <SportFilter
-            sports={sportsQuery.data?.sports ?? []}
-            activeSportId={sportId}
-            timeSelector={timeSelector}
-          />
-        </>
-      )}
-
-      {popularQuery.status === 'success' && popular.length > 0 ? (
-        <section className="content-section">
+      {!searchActive && popular.length > 0 ? (
+        <section className="content-section" aria-labelledby="popular-heading">
           <div className="section-heading">
-            <h2>Popular</h2>
+            <h2 id="popular-heading">Popular</h2>
           </div>
           <MatchGrid matches={popular} categoryLabels={categoryLabels} />
         </section>
       ) : null}
 
-      <section className="content-section">
+      <section className="content-section" aria-labelledby="schedule-heading">
         <div className="section-heading">
-          <h2>{sectionTitle}</h2>
-          {matchesQuery.status === 'success' ? (
-            <span className="section-heading__count">{matches.length} events</span>
+          <h2 id="schedule-heading">{scheduleTitle}</h2>
+          {scheduleSettled || matchesQuery.data ? (
+            <span className="section-heading__count">
+              {displayedMatches.length} events
+            </span>
           ) : null}
         </div>
 
-        {loading ? <LoadingState label="Loading matches…" /> : null}
-        {matchesQuery.status === 'error' && matchesQuery.error ? (
-          <ErrorState error={matchesQuery.error} onRetry={matchesQuery.refetch} />
-        ) : null}
-        {matchesQuery.status === 'success' && matches.length === 0 && !loading ? (
-          <EmptyState
-            title="No matches here"
-            description="Try another feed, sport, or time range."
+        {scheduleInitialLoad ? <LoadingState label="Loading matches…" /> : null}
+        {searchActive && discoveryQuery.status === 'error' && discoveryQuery.error ? (
+          <ErrorState
+            error={discoveryQuery.error}
+            onRetry={discoveryQuery.refetch}
           />
         ) : null}
-        {matchesQuery.status === 'success' && matches.length > 0 ? (
-          <MatchGrid matches={matches} categoryLabels={categoryLabels} />
+        {!searchActive &&
+        matchesQuery.status === 'error' &&
+        matchesQuery.error ? (
+          <ErrorState error={matchesQuery.error} onRetry={matchesQuery.refetch} />
+        ) : null}
+        {scheduleSettled &&
+        displayedMatches.length === 0 &&
+        !scheduleInitialLoad ? (
+          <EmptyState
+            title={searchActive ? 'No matches found' : 'No matches here'}
+            description={
+              searchActive
+                ? 'Try another spelling, sport, or feed.'
+                : 'Try another feed, sport, or time range.'
+            }
+          />
+        ) : null}
+        {!scheduleInitialLoad && displayedMatches.length > 0 ? (
+          <MatchGrid
+            matches={displayedMatches}
+            categoryLabels={categoryLabels}
+          />
         ) : null}
       </section>
     </div>

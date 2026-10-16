@@ -1,3 +1,4 @@
+import { motion } from 'motion/react'
 import { useCallback, useMemo } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { EventOfferList } from '../components/event/EventOfferList'
@@ -17,6 +18,7 @@ import {
   type EventSeed,
 } from '../utils/eventMatch'
 import { formatMatchDate } from '../utils/date'
+import { fadeUp, staggerContainer } from '../motion/presets'
 
 export function EventOffersPage() {
   const { selectedIds } = useProviderSelection()
@@ -88,16 +90,21 @@ export function EventOffersPage() {
         </Link>
       </div>
 
-      <header className="event-page__header">
-        <h1>{heading}</h1>
-        <p className="event-page__meta">
+      <motion.header
+        className="event-page__header"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.h1 variants={fadeUp}>{heading}</motion.h1>
+        <motion.p className="event-page__meta" variants={fadeUp}>
           {seed.category} · {formatMatchDate(seed.date)}
-        </p>
-        <p className="event-page__hint">
+        </motion.p>
+        <motion.p className="event-page__hint" variants={fadeUp}>
           Showing streams matched across {selectedIds.length} selected feed
           {selectedIds.length === 1 ? '' : 's'}. Pick a source to watch.
-        </p>
-      </header>
+        </motion.p>
+      </motion.header>
 
       {discoveryQuery.status === 'loading' ? (
         <LoadingState label="Finding streams across feeds…" />

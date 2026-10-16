@@ -10,8 +10,13 @@ export const router = createBrowserRouter([
     path: '/',
     element: <AppLayout />,
     children: [
-      { index: true, element: <BrowsePage /> },
-      { path: 'sport/:sportId', element: <BrowsePage /> },
+      {
+        element: <BrowsePage />,
+        children: [
+          { index: true, element: null },
+          { path: 'sport/:sportId', element: null },
+        ],
+      },
       { path: 'event', element: <EventOffersPage /> },
       { path: 'watch/:providerId/:matchId', element: <WatchPage /> },
       { path: '*', element: <NotFoundPage /> },

@@ -6,7 +6,7 @@ export function EmptyState({
   description?: string
 }) {
   return (
-    <div className="state state--empty">
+    <div className="state state--empty panel">
       <h3>{title}</h3>
       {description ? <p>{description}</p> : null}
     </div>

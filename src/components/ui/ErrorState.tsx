@@ -7,7 +7,7 @@ interface ErrorStateProps {
 
 export function ErrorState({ error, onRetry }: ErrorStateProps) {
   return (
-    <div className="state state--error" role="alert">
+    <div className="state state--error panel" role="alert">
       <p>{getErrorMessage(error)}</p>
       {onRetry ? (
         <button type="button" className="btn btn--secondary" onClick={onRetry}>
