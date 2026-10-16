@@ -4,6 +4,7 @@ import { ProviderMultiselect } from '../components/browse/ProviderMultiselect'
 import { ProviderWarnings } from '../components/browse/ProviderWarnings'
 import { SportFilter } from '../components/browse/SportFilter'
 import { MatchSearch } from '../components/browse/MatchSearch'
+import { PopularSection } from '../components/browse/PopularSection'
 import { TimeFilter } from '../components/browse/TimeFilter'
 import { MatchGrid } from '../components/matches/MatchGrid'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -224,12 +225,11 @@ export function BrowsePage() {
       </section>
 
       {!searchActive && popular.length > 0 ? (
-        <section className="content-section" aria-labelledby="popular-heading">
-          <div className="section-heading">
-            <h2 id="popular-heading">Popular</h2>
-          </div>
-          <MatchGrid matches={popular} categoryLabels={categoryLabels} />
-        </section>
+        <PopularSection
+          matches={popular}
+          categoryLabels={categoryLabels}
+          resetKey={`${providerKey}:${timeSelector}:${sportId ?? 'all'}`}
+        />
       ) : null}
 
       <section className="content-section" aria-labelledby="schedule-heading">

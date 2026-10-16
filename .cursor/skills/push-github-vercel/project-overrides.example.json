@@ -1,0 +1,9 @@
+{
+  "githubRepo": "owner/repo",
+  "productionBranch": "main",
+  "vercelTeamId": "team_xxxxxxxx",
+  "vercelTeamSlug": "my-team",
+  "vercelProjectId": "prj_xxxxxxxx",
+  "vercelProjectName": "my-project",
+  "productionUrl": "https://my-project.vercel.app"
+}
